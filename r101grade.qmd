@@ -59,5 +59,48 @@ ggplot(aes(x = Exam)) +
 ## Question 5
 
 ```{r}
+nb_group_counts <- grades |>
+  group_by(Group) |>
+  summarise(Count = n())
+
+print(nb_group_counts)
 
 ```
+
+## Question 6 
+
+```{r}
+ggplot(nb_group_counts, aes(x = Group, y = Count)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Number of Students in Each Group", x = "Group", y = "Count") +
+  theme_minimal()
+```
+## Question 7 
+
+We try a boxplot 
+
+```{r}
+ggplot(grades, aes(x = Group, y = Exam)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Exam Grades by Group", x = "Group", y = "Exam Grade")
+
+```
+
+We try a density graph 
+
+```{r}
+ggplot(grades, aes(x = Exam, fill = Group)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Distribution of Exam Grades by Group", x = "Exam Grade", y = "Density")
+```
+## Question 8 
+
+```{r}
+missed_exam_counts <- grades |>
+  group_by(Group) |>
+  summarise(MissedExamCount = sum(is.na(Exam)))
+
+print(missed_exam_counts)
+
+```
+
