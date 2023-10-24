@@ -1,0 +1,63 @@
+---
+title: "r-1°1-grade-analysis"
+author: "Manon Eluard"
+format: html
+editor: visual
+code-fold: true
+---
+
+```{r, message = FALSE}
+here::i_am("r-101-grade-analysis.Rproj")
+library(here)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(vroom)
+```
+
+## Question 1
+
+Download of the data containted in the local file 
+
+```{r, message = FALSE}
+grades <- vroom(here("grades.csv"))
+```
+
+## Question 2 
+
+```{r, message = FALSE, echo = FALSE}
+exam_stats <- grades |> 
+  summarise(min_exam = min(Exam, na.rm=TRUE), max_exam = max(Exam, na.rm=TRUE), mean_exam = median(Exam, na.rm=TRUE), med_exam = mean(Exam, na.rm=TRUE))
+
+exam_stats |>
+  knitr::kable()
+  
+```
+
+## Question 3
+
+```{r, message = FALSE, echo = FALSE}
+no_exam <-  grades |>
+  count(is.na(Exam))
+```
+
+There are `r no_exam [2,2]` students who didn't take the Exam.
+
+## Question 4 
+
+```{r, message = FALSE}
+grades |> 
+  drop_na(Exam) |>
+ggplot(aes(x = Exam)) + 
+  geom_histogram(binwidth = 4, fill = "lightpink", color = "white") + 
+  xlab("Grade at the Exam") + ylab("absolute frequencies") + 
+  labs(title = "Distribution of the grades") + 
+   theme(plot.title = element_text(hjust = 0.5))
+  
+```
+
+## Question 5
+
+```{r}
+
+```
