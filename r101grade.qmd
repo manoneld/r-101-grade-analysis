@@ -1,5 +1,5 @@
 ---
-title: "r-1°1-grade-analysis"
+title: "r-101-grade-analysis"
 author: "Manon Eluard"
 format: html
 editor: visual
@@ -13,11 +13,12 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(vroom)
+library(stringr)
 ```
 
 ## Question 1
 
-Download of the data containted in the local file 
+Download of the data contained in the local file 
 
 ```{r, message = FALSE}
 grades <- vroom(here("grades.csv"))
@@ -27,72 +28,91 @@ grades <- vroom(here("grades.csv"))
 
 ```{r, message = FALSE, echo = FALSE}
 exam_stats <- grades |> 
-  summarise(min_exam = min(Exam, na.rm=TRUE), max_exam = max(Exam, na.rm=TRUE), mean_exam = median(Exam, na.rm=TRUE), med_exam = mean(Exam, na.rm=TRUE))
+  summarise(Minimum = min(Exam, na.rm=TRUE), Maximum = max(Exam, na.rm=TRUE), Median = median(Exam, na.rm=TRUE), Mean = mean(Exam, na.rm=TRUE))
 
 exam_stats |>
   knitr::kable()
-  
 ```
+The minimum grade is 0, the maximum grade is 20. The median is 6,5 - which means that half of the students had a grade above 6,5 and half of the students had a grade below 6,5. The mean of the grades is 7,15. We notice that the mean and the median are quite different, especially because the mean is influenced by high grades. 
 
 ## Question 3
 
-```{r, message = FALSE, echo = FALSE}
-no_exam <-  grades |>
+```{r}
+students_without_exam <- grades |>
   count(is.na(Exam))
 ```
 
-There are `r no_exam [2,2]` students who didn't take the Exam.
+There are `r students_without_exam [2,2]` students who didn't take the Exam.
 
 ## Question 4 
 
-```{r, message = FALSE}
-grades |> 
-  drop_na(Exam) |>
-ggplot(aes(x = Exam)) + 
-  geom_histogram(binwidth = 4, fill = "lightpink", color = "white") + 
-  xlab("Grade at the Exam") + ylab("absolute frequencies") + 
-  labs(title = "Distribution of the grades") + 
-   theme(plot.title = element_text(hjust = 0.5))
+```{r}
+grades_NA <- grades |>
+  filter(!is.na(Exam))
   
+grades_distribution <- ggplot(grades_NA, aes(x = Exam)) + 
+  geom_histogram(binwidth = 1, fill = "lightpink", color = "white") + 
+  xlab("Exam Grade") + ylab("Frequency") + 
+  labs(title = "Distribution of the grades at the Exam") 
+grades_distribution
 ```
+We notice that the largest frequency of grades is 3 (around 75 people had 3 at the exam). We can also notice that a large proportion of students had under 10. Overall, the results at this exam are quite bad. 
 
 ## Question 5
 
 ```{r}
-nb_group_counts <- grades |>
+students_per_group <- grades |>
   group_by(Group) |>
-  summarise(Count = n())
+  summarize(Num_Students = n())
 
-print(nb_group_counts)
-
+students_per_group |>
+  knitr::kable()
 ```
+The groups with the highest number of students are groups 18 and 21 (36 students) and the groups with the smallest number of students are groups 2 and 10 (23 students). 
 
 ## Question 6 
 
 ```{r}
-ggplot(nb_group_counts, aes(x = Group, y = Count)) +
-  geom_bar(stat = "identity") +
-  labs(title = "Number of Students in Each Group", x = "Group", y = "Count") +
-  theme_minimal()
+students_per_group_plot <- 
+  ggplot(students_per_group, aes(x = Group, y = Num_Students)) +
+  geom_bar(stat="identity") +
+  labs(title = "Number of Students in Each Group", x = "Group", y = "Number of Students") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+students_per_group_plot
 ```
+We have the same conclusions : The groups with the highest number of students are groups 18 and 21 (36 students) and the groups with the smallest number of students are groups 2 and 10 (23 students). 
+We have added "theme(axis.text.x = element_text(angle = 45, hjust = 1))" because the x axis was not unreadable.
+
 ## Question 7 
 
-We try a boxplot 
+## Question 7 - A - Boxplot
 
 ```{r}
-ggplot(grades, aes(x = Group, y = Exam)) +
+exam_boxplot <- ggplot(grades, aes(x = Group, y = Exam)) +
   geom_boxplot() +
-  labs(title = "Distribution of Exam Grades by Group", x = "Group", y = "Exam Grade")
-
+  labs(title = "Distribution of Exam Grades by Group", x = "Group", y = "Exam Grade") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
+exam_boxplot 
 ```
 
-We try a density graph 
+## Question 7 - B - Density Graph
+
+```{r}
+exam_density <- ggplot(grades, aes(x = Exam, fill = Group)) +
+  geom_density(alpha = 0.5) +
+  labs(title = "Distribution of Exam Grades by Group", x = "Exam Grade", y = "Density")
+exam_density
+```
+
+## Question 7 - C - Histogram
 
 ```{r}
 ggplot(grades, aes(x = Exam, fill = Group)) +
-  geom_density(alpha = 0.5) +
-  labs(title = "Distribution of Exam Grades by Group", x = "Exam Grade", y = "Density")
+  geom_histogram(bins = 20) +
+  geom_rug(alpha = 0.05, linewidth = 1.5) +
+  facet_wrap(~Group)
 ```
+
+According to me, the less readable graphic is the density graph because the distributions of all groups are overlapping. The histogram is more readable. We can easily see the distribution of the grades for each group. However, it is not very easy to compare. The boxplot is much more clearer to make comparisons between groups. We can easily notice that the group 21 have the best grades and that groups 4 and 5 have the worst grades, for instance. Also, according to me, we have a contradictory result because we also saw previously that the group 21 was one the group with the largest number of students and commonly, we know that the more students you have in a class, the less time you have for each student so the results can be lower, which is not the case in this precise case.
+
 ## Question 8 
 
 ```{r}
@@ -100,7 +120,136 @@ missed_exam_counts <- grades |>
   group_by(Group) |>
   summarise(MissedExamCount = sum(is.na(Exam)))
 
-print(missed_exam_counts)
+missed_exam_counts |>
+  knitr::kable()
+```
+
+The group with the largest number of students who have missed the exam is group 10. One of the group with the lowest number of students who have missed the exam is group 21, which is logical with our previous result (question 7)
+
+## Question 9
+
+```{r}
+missed_exam_counts_plot <- 
+  ggplot(missed_exam_counts, aes(x = Group, y = MissedExamCount)) +
+  geom_col() +
+  labs(title = "Number of Students Missing the Exam by Group", x = "Group", y = "Number of Students Missing Exam") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+missed_exam_counts_plot
+```
+
+We obtain the same results : the group with the largest number of students who have missed the exam is group 10. One of the group with the lowest number of students who have missed the exam is group 21, which is logical with our previous result (question 7)
+
+## Question 10
+
+```{r}
+grades2 <- grades |>
+  pivot_longer(cols = Exam | starts_with("MCQ") | starts_with("Online_MCQ"),
+               names_to = "name",
+               values_to = "value")
+head(grades2) #display first rows 
+```
+
+## Question 11
+
+```{r}
+missing_grades_per_student <- grades2 |>
+  group_by(Id) |>
+  summarize(Num_Missing_Grades = sum(is.na(value)))
+head(missing_grades_per_student)
+```
+We have the number of missing grades in total for each student, characterized by their ID. 
+
+## Question 12
+
+```{r}
+ggplot(missing_grades_per_student, aes(x = Num_Missing_Grades)) +
+  geom_histogram(binwidth = 1, color = "white") +
+  labs(title = "Distribution of Number of Missing Grades per Student", x = "Number of Missing Grades", y = "Frequency")
+```
+The largest frequency of number of missing grades is 20 (a large proportion of students have missed 20 grades)
+
+## Question 13
+
+```{r}
+exam_new_grades <- grades2 |> filter(str_starts(name, "Exam"))
+missed_exam_counts2 <- exam_new_grades |> group_by(Group) |> 
+  summarise(Num_Missing_Exam  = sum(is.na(value)))
+
+head(missed_exam_counts2)
+```
+
+## Question 14
+
+```{r}
+missing_online_grades_per_student <- grades2|> 
+  filter(str_starts(name, "Online_MCQ")) |> 
+  group_by(Id) |> 
+  summarize(missing_online_grades = sum(is.na(value)))
+head(missing_online_grades_per_student)
 
 ```
 
+## Question 15 - Approach 1
+
+```{r}
+grades_with_missing_online <- grades |> 
+  rowwise() |> 
+  mutate(na_online_grades = sum(is.na(c_across(starts_with("Online_MCQ")))))
+head(grades_with_missing_online)
+```
+```{r}
+plot <- ggplot(grades_with_missing_online, aes(x = Exam, fill = factor(na_online_grades))) +
+  geom_histogram() +
+  labs(title = "Distribution of Exam Grades by Number of Missing Online Grades", x = "Exam Grade", y = "Frequency",
+       fill = "Number of Missing Online Grades") 
+plot
+```
+
+We can quite easily see that the number of missing online grades is correlated with the exam grade. In fact, we can see that among exam grades, the number of missing online exam is high. For instance, among O exam grade, there is a large number of 18 or 17 missing online grades and a low number of 1 or 2 missing online exams. 
+
+## Question 16
+
+```{r}
+mcq_missed_per_student <- grades |> 
+  group_by(Id) |> 
+  mutate(Missed = any(is.na(c_across(starts_with("MCQ")))))  |> 
+  distinct(Id, .keep_all = TRUE)  |> 
+  select(Id, Missed)
+knitr::kable(head(mcq_missed_per_student))
+```
+
+## Question 17
+
+```{r}
+group_missed_percentage <- grades |>
+  group_by(Group, Id) |>
+  summarize(Missed = any(is.na(c_across(starts_with("MCQ"))))) |>
+  group_by(Group) |>
+  summarize(P_missed = mean(Missed) * 100)
+knitr::kable(group_missed_percentage)
+```
+
+For instance, in group 12, it means that every student of this group have missed at least once a grade MCQ_xx
+
+## Question 18
+
+```{r}
+average_exam_grade <- grades |>
+  group_by(Group) |>
+  summarize(Average_Exam_Grade = mean(Exam, na.rm = TRUE))
+
+merged_data <- inner_join(group_missed_percentage, average_exam_grade, by = "Group")
+
+graph <- ggplot(merged_data, aes(x = P_missed, y = Average_Exam_Grade)) +
+  geom_jitter(alpha = 0.5, width = 0.01, height = 0.01) +
+  labs(x = "Percentage of Missed MCQ_xx Grade per group",
+       y = "Average grade at the Exam per group",
+       size = "Average grade at the Exam per group",
+       color = "Percentage of missed MCQ_xx grade per group") +
+  scale_color_viridis_c() +
+  scale_size_continuous()
+graph
+
+```
+To conclude, students that have missed MCQ_xx Grade have in average lowest grade at the Exam. 
